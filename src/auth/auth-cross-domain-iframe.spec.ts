@@ -6,7 +6,6 @@ function IFrameMock(frame: HTMLIFrameElement, redirect?: boolean) {
   // This mock should match the code at the URL
   const SOURCE = 'security-token-svc';
   const HOST = 'auth-client';
-  console.log(frame.contentWindow);
   frame.contentWindow.addEventListener('message', (msg: any) => {
     if (msg.data.source !== HOST) { return; }
     if (msg.data.messageType === 'ready') {
@@ -15,15 +14,8 @@ function IFrameMock(frame: HTMLIFrameElement, redirect?: boolean) {
       getTokenCalls += 1;
       if (redirect) {
         spyOn(BBAuthCrossDomainIframe, 'inIframe').and.returnValue(true);
+        spyOn(BBAuthCrossDomainIframe, 'parentWindow').and.returnValue(window.window);
         BBAuthCrossDomainIframe.postRedirectMessage('myURL', null);
-        // window.postMessage({
-        //   messageType: 'redirect',
-        //   source: SOURCE,
-        //   value: {
-        //     replace: null,
-        //     url: 'myURL'
-        //   }
-        // }, '*');
       } else {
         window.postMessage({
           messageType: 'getToken',
@@ -128,6 +120,12 @@ describe('Auth Cross Domain Iframe', () => {
   describe('inIframe', () => {
     it('returns true because testing is done in an iframe', () => {
       expect(BBAuthCrossDomainIframe.inIframe()).toBe(true);
+    });
+  });
+
+  describe('parentWindow', () => {
+    it('returns the parent window', () => {
+      expect(BBAuthCrossDomainIframe.parentWindow()).toBe(window.parent);
     });
   });
 

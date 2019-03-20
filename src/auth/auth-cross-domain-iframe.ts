@@ -61,7 +61,7 @@ export class BBAuthCrossDomainIframe {
   // This should be called by the iframe when we are intended to navigate to a page
   public static postRedirectMessage(url: string, replace?: boolean) {
     if (this.inIframe()) {
-      window.parent.postMessage({
+      this.parentWindow().postMessage({
         messageType: 'redirect',
         source: HOST,
         value: {url, replace}
@@ -72,5 +72,9 @@ export class BBAuthCrossDomainIframe {
   // Used to tell if you're in an iframe when this call is made
   public static inIframe(): boolean {
     return window.self !== window.top;
+  }
+
+  public static parentWindow(): Window {
+    return window.parent;
   }
 }

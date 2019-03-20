@@ -4,6 +4,8 @@ import {
   BBAuthDomUtility
 } from '../shared/dom-utility';
 
+import { BBAuthNavigator } from '../shared/navigator';
+
 import { BBAuthTokenResponse } from './bbauth-token-response';
 
 //#endregion
@@ -32,6 +34,8 @@ export class BBAuthCrossDomainIframe {
 
   public static getTokenFromIframe(iframeEl: HTMLIFrameElement): Promise<BBAuthTokenResponse> {
     return new Promise<BBAuthTokenResponse>((resolve) => {
+      console.log('window');
+      console.log(window);
       window.addEventListener('message', function handleMessageFromIframe(msg: any) {
         if (msg.data.source !== HOST) { return; }
         if (msg.data.messageType === 'ready') {
@@ -39,6 +43,9 @@ export class BBAuthCrossDomainIframe {
             messageType: 'getToken',
             source: SOURCE
           }, '*'); // set this * to something else
+        } else if (msg.data.messageType === 'redirect') {
+          BBAuthNavigator.navigate(msg.data.value.url, msg.data.value.replace);
+          resolve(null);
         } else if (msg.data.messageType === 'getToken') {
           const tokenResponse: BBAuthTokenResponse = {
             access_token: msg.data['value'],
@@ -51,5 +58,21 @@ export class BBAuthCrossDomainIframe {
       });
       iframeEl.contentWindow.postMessage({messageType: 'ready', source: SOURCE}, '*');
     });
+  }
+
+  // This should be called by the iframe when we are intended to navigate to a page
+  public static postRedirectMessage(url: string, replace?: boolean) {
+    if (this.inIframe()) {
+      window.postMessage({
+        messageType: 'redirect',
+        source: HOST,
+        value: {url, replace}
+      }, '*');
+    }
+  }
+
+  // Used to tell if you're in an iframe when this call is made
+  public static inIframe(): boolean {
+    return window.self !== window.top;
   }
 }

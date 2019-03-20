@@ -1,21 +1,36 @@
 import { BBAuthDomUtility } from '../shared/dom-utility';
+import { BBAuthNavigator } from '../shared/navigator';
 import { BBAuthCrossDomainIframe } from './auth-cross-domain-iframe';
 
-function IFrameMock(frame: HTMLIFrameElement) {
+function IFrameMock(frame: HTMLIFrameElement, redirect?: boolean) {
   // This mock should match the code at the URL
   const SOURCE = 'security-token-svc';
   const HOST = 'auth-client';
+  console.log(frame.contentWindow);
   frame.contentWindow.addEventListener('message', (msg: any) => {
     if (msg.data.source !== HOST) { return; }
     if (msg.data.messageType === 'ready') {
       window.postMessage({messageType: 'ready', source: SOURCE}, '*');
     } else if (msg.data.messageType === 'getToken') {
       getTokenCalls += 1;
-      window.postMessage({
-        messageType: 'getToken',
-        source: SOURCE,
-        value: 'accessToken!'
-      }, '*');
+      if (redirect) {
+        spyOn(BBAuthCrossDomainIframe, 'inIframe').and.returnValue(true);
+        BBAuthCrossDomainIframe.postRedirectMessage('myURL', null);
+        // window.postMessage({
+        //   messageType: 'redirect',
+        //   source: SOURCE,
+        //   value: {
+        //     replace: null,
+        //     url: 'myURL'
+        //   }
+        // }, '*');
+      } else {
+        window.postMessage({
+          messageType: 'getToken',
+          source: SOURCE,
+          value: 'accessToken!'
+        }, '*');
+      }
     }
   });
 }
@@ -50,7 +65,11 @@ describe('Auth Cross Domain Iframe', () => {
       BBAuthCrossDomainIframe.getOrMakeIframe();
 
       expect(getElementSpy).toHaveBeenCalledWith('auth-cross-domain-iframe');
-      expect(requestSpy).toHaveBeenCalledWith('', 'auth-cross-domain-iframe', '');
+      expect(requestSpy).toHaveBeenCalledWith(
+        'https://s21aidntoken00blkbapp01.nxt.blackbaud.com/Iframes/CrossDomainAuthFrame.html',
+        'auth-cross-domain-iframe',
+        ''
+      );
     });
 
     it('uses an existing frame if one exists', () => {
@@ -90,6 +109,25 @@ describe('Auth Cross Domain Iframe', () => {
             });
 
         });
+    });
+
+    it('listens to the rediret message', (done) => {
+      const navSpy = spyOn(BBAuthNavigator, 'navigate');
+      fakeIframe = BBAuthDomUtility.addIframe('', 'auth-cross-domain-iframe', '');
+      IFrameMock(fakeIframe, true);
+
+      BBAuthCrossDomainIframe.getTokenFromIframe(fakeIframe)
+        .then((tokenResonse) => {
+          expect(tokenResonse).toBeNull();
+          expect(navSpy).toHaveBeenCalledWith('myURL', null);
+          done();
+        });
+    });
+  });
+
+  describe('inIframe', () => {
+    it('returns true because testing is done in an iframe', () => {
+      expect(BBAuthCrossDomainIframe.inIframe()).toBe(true);
     });
   });
 

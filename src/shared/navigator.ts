@@ -1,4 +1,5 @@
 import { BBAuthTokenErrorCode } from '../auth';
+import { BBAuthCrossDomainIframe } from '../auth/auth-cross-domain-iframe';
 
 const SIGNIN_BASE_URL = 'https://signin.blackbaud.com/signin/';
 const ERROR_BASE_URL = 'https://host.nxt.blackbaud.com/errors/';
@@ -31,7 +32,9 @@ function createSigninUrl(inactive?: boolean) {
 export class BBAuthNavigator {
   /* istanbul ignore next */
   public static navigate(url: string, replace?: boolean) {
-    if (replace) {
+    if (BBAuthCrossDomainIframe.inIframe()) {
+      BBAuthCrossDomainIframe.postRedirectMessage(url, replace);
+    } else if (replace) {
       location.replace(url);
     } else {
       location.href = url;

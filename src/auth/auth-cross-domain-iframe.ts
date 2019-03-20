@@ -34,8 +34,6 @@ export class BBAuthCrossDomainIframe {
 
   public static getTokenFromIframe(iframeEl: HTMLIFrameElement): Promise<BBAuthTokenResponse> {
     return new Promise<BBAuthTokenResponse>((resolve) => {
-      console.log('window');
-      console.log(window);
       window.addEventListener('message', function handleMessageFromIframe(msg: any) {
         if (msg.data.source !== HOST) { return; }
         if (msg.data.messageType === 'ready') {
@@ -63,7 +61,7 @@ export class BBAuthCrossDomainIframe {
   // This should be called by the iframe when we are intended to navigate to a page
   public static postRedirectMessage(url: string, replace?: boolean) {
     if (this.inIframe()) {
-      window.postMessage({
+      window.parent.postMessage({
         messageType: 'redirect',
         source: HOST,
         value: {url, replace}
